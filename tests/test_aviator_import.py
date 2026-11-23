@@ -72,7 +72,7 @@ def test_imports_original_headerless_six_column_csv():
     response = client.post("/api/v1/data/aviator/import", json={
         "file_name": "data.csv",
         "format": "csv",
-        "content": "12:30,20,25,2.5,100,round-8\\n",
+        "content": "12:30,20,25,2.5,100,round-8\n",
         "source": "local export",
         "authorization_basis": "Authorized local test export",
     })
