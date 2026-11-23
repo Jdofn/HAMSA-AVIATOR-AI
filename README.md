@@ -1,4 +1,4 @@
-# HAMSA AVIATOR AI — Phase 01B
+# HAMSA AVIATOR AI — Phase 02
 
 Foundation for a Telegram-based Aviator research system with defensive cybersecurity and offline data-intelligence capabilities.
 

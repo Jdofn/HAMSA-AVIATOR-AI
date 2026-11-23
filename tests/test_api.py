@@ -19,3 +19,4 @@ def test_system_status_marks_data_source_unconfigured():
     response = client.get("/api/v1/status")
     assert response.status_code == 200
     assert response.json()["official_data_source_configured"] is False
+    assert response.json()["phase"] == 2
