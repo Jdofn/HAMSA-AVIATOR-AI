@@ -92,3 +92,8 @@ See [Phase 05 monitor documentation](docs/PHASE_05_SOURCE_MONITOR.md). Monitorin
 - Import and read endpoints use the existing dashboard access token. The catalog metadata endpoint remains read-only.
 - This is an ingestion contract, not a live 1xBet connector. The supplied PHP wrapper has not been executed; its undocumented endpoint usage and license remain unconfirmed. Only authorized normalized data should be submitted.
 - Historical odds movement, settlement, and betting recommendations are outside this phase. Data remains source-supplied and unverified.
+
+
+## External Crash Monitoring Reference Audit
+
+The repository [Zakaria-laktati/crash-1xbet-monitoring](https://github.com/Zakaria-laktati/crash-1xbet-monitoring) has been reviewed and catalogued at GET /api/v1/catalog/sportsbook/sources/crash-monitoring. It implements a WebSocket scraper and Streamlit/PostgreSQL monitor; no documented REST API was identified (REST API is listed as future work). Its dashboard/statistical concepts overlap with HAMSA's existing analytics. Session-token capture, account registration, and scraping code are not imported. See docs/CRASH_MONITORING_SOURCE_AUDIT.md.
