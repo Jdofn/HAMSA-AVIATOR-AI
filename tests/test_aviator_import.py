@@ -5,7 +5,7 @@ from app.aviator_import import normalize_capture_records
 client = TestClient(app)
 
 
-def test_imports_reference_csv_shape_and_ignores_extra_metrics():
+def test_imports_reference_csv_shape_and_preserves_aggregate_metrics():
     response = client.post("/api/v1/data/aviator/import", json={
         "file_name": "capture.csv",
         "format": "csv",
@@ -17,11 +17,11 @@ def test_imports_reference_csv_shape_and_ignores_extra_metrics():
     body = response.json()
     assert body["persisted"] is False
     assert body["record_count"] == 1
-    assert body["rounds"][0]["multiplier"] == 2.5
-    assert body["rounds"][0]["round_reference"] == "round-7"
-    assert "Players" not in response.text
-    assert "Prize" not in response.text
-    assert body["rounds"][0]["verification_status"] == "unverified"
+    round_data = body["rounds"][0]
+    assert round_data["multiplier"] == 2.5
+    assert round_data["round_reference"] == "round-7"
+    assert round_data["source_metrics"] == {"players": 20.0, "bets": 25.0, "prize": 100.0}
+    assert round_data["verification_status"] == "unverified"
 
 
 def test_imports_json_with_epoch_milliseconds():
@@ -77,8 +77,17 @@ def test_imports_original_headerless_six_column_csv():
         "authorization_basis": "Authorized local test export",
     })
     assert response.status_code == 200
-    body = response.json()
-    assert body["rounds"][0]["time_of_day"] == "12:30"
-    assert body["rounds"][0]["occurred_at"] is None
-    assert body["rounds"][0]["round_reference"] == "round-8"
-    assert "20" not in str(body["rounds"][0])
+    round_data = response.json()["rounds"][0]
+    assert round_data["time_of_day"] == "12:30"
+    assert round_data["occurred_at"] is None
+    assert round_data["round_reference"] == "round-8"
+    assert round_data["source_metrics"] == {"players": 20.0, "bets": 25.0, "prize": 100.0}
+
+
+def test_rejects_invalid_aggregate_metrics():
+    try:
+        normalize_capture_records("12:30,-1,25,2.5,100,round-9", "csv")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Negative source metrics must be rejected")
