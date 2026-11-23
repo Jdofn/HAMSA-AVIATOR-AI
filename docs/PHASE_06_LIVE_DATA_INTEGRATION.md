@@ -56,3 +56,9 @@ The supplied `_1xbet.php` was reviewed as a candidate source. It is a PHP wrappe
 - The repository README only describes the project as a 1xbet.com API PHP project. No LICENSE file was found at the repository root, so copying the source wholesale into HAMSA is not assumed to be licensed.
 
 **Decision:** do not wire this wrapper into the Aviator ingestion pipeline. It would provide the wrong data domain and could not produce valid round multipliers. Keep it as a reviewed reference only. Reconsider it only if HAMSA's scope expands to sportsbook data and the endpoint usage, terms, and code license are confirmed. For Aviator, a separate authorized Crash/Aviator data source or official interface is still required.
+
+
+## HAMSA source catalog category — Sportsbook
+The reviewed PHP wrapper is represented as a separate read-only catalog category:
+`GET /api/v1/catalog/sportsbook/sources/1xbet-php`.
+This endpoint exposes source metadata, reviewed method/endpoint families, dependencies, compatibility, and limitations. It performs no upstream HTTP requests and does not import PHP code. The category is intentionally separate from Aviator ingestion because the reviewed wrapper exposes sportsbook data, not Aviator/Crash round multipliers. License and provider terms remain unconfirmed.
