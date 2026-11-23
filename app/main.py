@@ -4,6 +4,7 @@ from app.routers.system import router as system_router
 from app.routers.security import router as security_router
 from app.routers.data import router as data_router
 from app.routers.lab import router as lab_router
+from app.aviator_import import router as aviator_import_router
 
 app = FastAPI(
     title="HAMSA AVIATOR AI",
@@ -15,6 +16,7 @@ app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(system_router, prefix="/api/v1", tags=["system"])
 app.include_router(security_router, prefix="/api/v1/security", tags=["security-research"])
 app.include_router(data_router, prefix="/api/v1/data", tags=["data-intelligence"])
+app.include_router(aviator_import_router, prefix="/api/v1/data", tags=["aviator-import"])
 app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
 
 
