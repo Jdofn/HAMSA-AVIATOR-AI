@@ -57,6 +57,23 @@ Source and authorization declarations are supplied by the requester and are not 
 
 API docs: `http://127.0.0.1:8000/docs`.
 
+
+
+## Phase 06 — Signed Live Data Webhook
+
+- `POST /api/v1/aviator/feed/webhook` accepts normalized batches from an explicitly authorized sender.
+- HMAC-SHA256 signs the exact request bytes and Unix timestamp using `X-HAMSA-Timestamp` and `X-HAMSA-Signature` headers.
+- Timestamp tolerance defaults to 300 seconds; request bodies are capped at 256 KB while streaming; duplicate round IDs are skipped.
+- Configure `LIVE_FEED_WEBHOOK_SECRET` in the deployment environment. HMAC confirms message integrity and shared-secret possession, not the truth or authorization of the upstream data.
+- This is a receiver only; no live 1xBet/SPRIBE connector is configured.
+
+## Source Catalog — Sportsbook
+
+- Read-only metadata endpoint: `GET /api/v1/catalog/sportsbook/sources/1xbet-php`.
+- Catalog entry for [LanceSpezzate/1xbet-api-php](https://github.com/LanceSpezzate/1xbet-api-php), covering sports, leagues, matches, odds, search, and video metadata.
+- The source is catalogued but not connected; it depends on `HTTP_SGET` and `need/ok_odds.json`, and its license is unconfirmed.
+- It is not an Aviator/Crash feed and is kept separate from Aviator ingestion.
+
 ## Railway deployment
 Deploy using the included Dockerfile and `railway.json`. Configure `APP_ENV=production`, `DATABASE_URL`, `DASHBOARD_ACCESS_TOKEN`, and `LOG_LEVEL=INFO`. Use Railway PostgreSQL or another persistent PostgreSQL service for retained history.
 
