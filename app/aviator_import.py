@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import RoundResult
+from app.aviator_access import require_dashboard_access
 
 router = APIRouter()
 MAX_CONTENT_CHARS = 1_000_000
@@ -140,7 +141,7 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
 
 
 @router.post("/aviator/import")
-async def import_aviator_capture(request: AviatorImportRequest, db: Session = Depends(get_db)):
+async def import_aviator_capture(\n    request: AviatorImportRequest,\n    db: Session = Depends(get_db),\n    _: None = Depends(require_dashboard_access),\n):
     """Normalize and persist a local export; duplicate rows are skipped."""
     try:
         rounds = normalize_capture_records(request.content, request.format)
