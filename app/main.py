@@ -8,6 +8,7 @@ from app.aviator_import import router as aviator_import_router
 from app.aviator_analytics import router as aviator_analytics_router
 from app.aviator_dashboard import router as aviator_dashboard_router
 from app.aviator_live_feed import router as aviator_live_feed_router
+from app.aviator_monitor import router as aviator_monitor_router
 
 app = FastAPI(
     title="HAMSA AVIATOR AI",
@@ -23,6 +24,7 @@ app.include_router(aviator_import_router, prefix="/api/v1/data", tags=["aviator-
 app.include_router(aviator_analytics_router, prefix="/api/v1/aviator", tags=["aviator-analytics"])
 app.include_router(aviator_dashboard_router, tags=["aviator-dashboard"])
 app.include_router(aviator_live_feed_router, prefix="/api/v1/aviator", tags=["authorized-live-feed"])
+app.include_router(aviator_monitor_router, prefix="/api/v1/aviator", tags=["source-monitor"])
 app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
 
 
@@ -30,7 +32,7 @@ app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
 async def root():
     return {
         "service": "HAMSA AVIATOR AI",
-        "phase": "04",
+        "phase": "05",
         "status": "running",
         "mode": "research",
         "data_source": "user_exports_and_authorized_live_feed",
