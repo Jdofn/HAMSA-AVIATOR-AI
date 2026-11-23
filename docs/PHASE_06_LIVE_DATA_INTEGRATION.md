@@ -35,7 +35,7 @@ headers = {
 }
 ```
 
-The server rejects missing configuration (503), malformed/missing headers (401), invalid signatures (401), timestamps outside the configured tolerance (default 300 seconds; minimum effective tolerance 30 seconds) (401), and bodies larger than 1 MiB (413). Comparison is constant-time. Round IDs are deduplicated by the existing database uniqueness constraint and ingestion logic. The timestamp window limits stale replays; round-level idempotency prevents duplicate round insertion.
+The server rejects missing configuration (503), malformed/missing headers (401), invalid signatures (401), timestamps outside the configured tolerance (default 300 seconds; minimum effective tolerance 30 seconds) (401), and bodies larger than 256 KB (413). Comparison is constant-time. Round IDs are deduplicated by the existing database uniqueness constraint and ingestion logic. The timestamp window limits stale replays; round-level idempotency prevents duplicate round insertion.
 
 ## Deployment
 Set `LIVE_FEED_WEBHOOK_SECRET` and optionally `LIVE_FEED_WEBHOOK_TOLERANCE_SECONDS=300` in Railway or the hosting environment. Keep the secret out of Git, source code, URLs, and chat. Rotate it if exposed. Existing dashboard token protection remains separate and unchanged.
