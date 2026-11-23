@@ -11,11 +11,12 @@ from app.aviator_live_feed import router as aviator_live_feed_router
 from app.aviator_monitor import router as aviator_monitor_router
 from app.aviator_webhook import router as aviator_webhook_router
 from app.sportsbook_catalog import router as sportsbook_catalog_router
+from app.sportsbook_data import router as sportsbook_data_router
 
 app = FastAPI(
     title="HAMSA AVIATOR AI",
     description="Aviator research platform with authorized data ingestion, historical analytics, and defensive protocol analysis.",
-    version="0.7.0",
+    version="0.8.0",
 )
 
 app.include_router(health_router, prefix="/health", tags=["health"])
@@ -30,13 +31,14 @@ app.include_router(aviator_webhook_router, prefix="/api/v1/aviator", tags=["sign
 app.include_router(aviator_monitor_router, prefix="/api/v1/aviator", tags=["source-monitor"])
 app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
 app.include_router(sportsbook_catalog_router, prefix="/api/v1/catalog/sportsbook", tags=["sportsbook-catalog"])
+app.include_router(sportsbook_data_router, prefix="/api/v1/catalog/sportsbook", tags=["sportsbook-data"])
 
 
 @app.get("/", tags=["system"])
 async def root():
     return {
         "service": "HAMSA AVIATOR AI",
-        "phase": "06",
+        "phase": "07",
         "status": "running",
         "mode": "research",
         "data_source": "user_exports_and_authorized_signed_webhooks",

@@ -82,3 +82,13 @@ The API and Telegram bot may run as separate Railway services. Set `TELEGRAM_BOT
 
 ## Phase 05 — Source health & data quality
 See [Phase 05 monitor documentation](docs/PHASE_05_SOURCE_MONITOR.md). Monitoring is based only on records already stored by HAMSA; no upstream service is probed. A real external adapter requires official API documentation or documented authorization and an approved schema/authentication method.
+
+
+## Phase 07 — Sportsbook Data Foundation
+
+- `POST /api/v1/catalog/sportsbook/events/import` accepts up to 250 normalized event records from an explicitly authorized source.
+- `GET /api/v1/catalog/sportsbook/events` lists saved fixtures; `GET /api/v1/catalog/sportsbook/summary` reports event counts and statuses.
+- Stores event identity, sport/league, home/away teams, scheduled start, status, and latest supplied 1X2 odds. Existing event IDs are updated rather than duplicated.
+- Import and read endpoints use the existing dashboard access token. The catalog metadata endpoint remains read-only.
+- This is an ingestion contract, not a live 1xBet connector. The supplied PHP wrapper has not been executed; its undocumented endpoint usage and license remain unconfirmed. Only authorized normalized data should be submitted.
+- Historical odds movement, settlement, and betting recommendations are outside this phase. Data remains source-supplied and unverified.
