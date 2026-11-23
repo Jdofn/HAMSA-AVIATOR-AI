@@ -110,3 +110,49 @@ def test_hmac_rejects_wrong_digest_length():
         "expected_digest": "abcd",
     })
     assert response.status_code == 422
+
+
+def test_protocol_inspect_accepts_websocket_metadata():
+    response = client.post("/api/v1/lab/protocol/inspect", json={
+        "source": "owned websocket fixture",
+        "authorization_basis": "Synthetic data created for this test",
+        "events": [{
+            "protocol": "websocket",
+            "event_type": "websocket_message",
+            "direction": "inbound",
+            "message_type": "text",
+            "payload_bytes": 24,
+        }],
+    })
+    assert response.status_code == 200
+    assert response.json()["counts"]["websocket_message"] == 1
+    assert response.json()["payload_bytes_total"] == 24
+
+
+def test_hmac_sha512_verification():
+    message = "phase two verification"
+    key = "local-only-key"
+    digest = hmac.new(key.encode(), message.encode(), hashlib.sha512).hexdigest()
+    response = client.post("/api/v1/lab/crypto/hmac/verify", json={
+        "message": message,
+        "secret_key": key,
+        "expected_digest": digest,
+        "algorithm": "sha512",
+    })
+    assert response.status_code == 200
+    assert response.json()["valid"] is True
+
+
+def test_protocol_inspect_rejects_more_than_1000_events():
+    event = {
+        "protocol": "websocket",
+        "event_type": "websocket_message",
+        "direction": "inbound",
+        "message_type": "ping",
+    }
+    response = client.post("/api/v1/lab/protocol/inspect", json={
+        "source": "local fixture",
+        "authorization_basis": "Owned synthetic data",
+        "events": [event] * 1001,
+    })
+    assert response.status_code == 422
