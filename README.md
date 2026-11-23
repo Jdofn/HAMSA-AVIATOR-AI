@@ -62,3 +62,12 @@ Do not commit `.env` or secrets.
 - Security scope and crypto inspection endpoints enforce bounded input.
 - JSON/CSV dataset inspection requires provenance declarations, rejects invalid formats, redacts sensitive-key values, and does not persist submitted content.
 - Official 1xBet/Spribe source remains unconfigured until independently verified.
+
+## Phase 02 — Authorized protocol and cryptography lab
+- `POST /api/v1/lab/protocol/inspect` validates and summarizes structured HTTP/WebSocket metadata exports in memory.
+- Only allowlisted metadata headers are returned; cookies, authorization headers, custom headers, raw packet bodies, and query strings are excluded.
+- `POST /api/v1/lab/crypto/hmac/verify` verifies HMAC-SHA256 or HMAC-SHA512 with a requester-provided key, using constant-time comparison. The key is not stored or returned.
+- Source and authorization declarations are recorded as unverified requester claims.
+- PCAP parsing, asymmetric signatures, live collection, and remote TLS probing remain deferred.
+
+See [Phase 02 lab scope](docs/PHASE_02_LAB.md). All operations are offline and limited to data and keys you own or are authorized to use.
