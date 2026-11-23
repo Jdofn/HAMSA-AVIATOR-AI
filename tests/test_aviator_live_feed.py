@@ -33,7 +33,7 @@ def test_live_feed_is_idempotent_and_visible_in_dashboard_history(monkeypatch):
         "authorization_basis": "Synthetic test data",
         "records": [
             {"round_id": "live-002", "multiplier": 1.8, "occurred_at": "2026-11-23T10:00:00Z"},
-            {"round_id": "live-003", "multiplier": 7.2, "players": 15, "bets": 20, "prize": 90},
+            {"round_id": "live-003", "multiplier": 7.2, "players": 15, "bets": 20, "prize": 90},\n            {"round_id": "live-003", "multiplier": 99.0},
         ],
     }
     first = client.post("/api/v1/aviator/feed/batch", json=payload)
