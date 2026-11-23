@@ -33,6 +33,6 @@ async def root():
         "phase": "04",
         "status": "running",
         "mode": "research",
-        "data_source": "user_supplied_exports_only",
+        "data_source": "user_exports_and_authorized_live_feed",
         "security_mode": "defensive_research",
     }
