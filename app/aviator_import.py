@@ -48,9 +48,23 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
                 raise ValueError("JSON must contain an array of capture objects")
             rows = parsed
         else:
-            rows = list(csv.DictReader(io.StringIO(content)))
+            # Legacy source writes headerless rows: Time, players, bets, F, prize, L.
+            raw_rows = list(csv.reader(io.StringIO(content)))
+            if not raw_rows:
+                raise ValueError("CSV must contain at least one data row")
+            known_headers = {"f", "ts", "time", "l"}
+            first = {cell.strip().lower() for cell in raw_rows[0]}
+            if first.intersection(known_headers):
+                rows = list(csv.DictReader(io.StringIO(content)))
+            else:
+                rows = []
+                for values in raw_rows:
+                    if len(values) != 6:
+                        raise ValueError("Headerless capture CSV rows must contain exactly 6 columns")
+                    time_value, _players, _bets, multiplier_value, _prize, round_value = values
+                    rows.append({"Time": time_value, "F": multiplier_value, "L": round_value})
             if not rows or not rows[0]:
-                raise ValueError("CSV must include a header and at least one data row")
+                raise ValueError("CSV must contain at least one data row")
     except (json.JSONDecodeError, csv.Error) as exc:
         raise ValueError(f"Invalid {file_format.upper()} capture export") from exc
 
@@ -60,20 +74,27 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
     normalized = []
     for index, row in enumerate(rows, start=1):
         fields = {str(key).strip().lower(): value for key, value in row.items() if key is not None}
-        if "f" not in fields or "ts" not in fields:
-            raise ValueError(f"Row {index} must contain F and TS fields")
+        if "f" not in fields or not ({"ts", "time"} & fields.keys()):
+            raise ValueError(f"Row {index} must contain F and either TS or Time")
         try:
             multiplier = float(fields["f"])
             if not math.isfinite(multiplier) or multiplier <= 0:
                 raise ValueError
-            occurred_at = _timestamp(fields["ts"])
+            if fields.get("ts") not in (None, ""):
+                occurred_at = _timestamp(fields["ts"])
+                time_of_day = None
+            else:
+                time_of_day = str(fields["time"]).strip()
+                datetime.strptime(time_of_day, "%H:%M")
+                occurred_at = None
         except (TypeError, ValueError, OverflowError, OSError) as exc:
             raise ValueError(f"Row {index} has invalid F or TS value") from exc
         round_reference = fields.get("l")
         normalized.append({
             "round_reference": str(round_reference)[:128] if round_reference not in (None, "") else None,
             "multiplier": multiplier,
-            "occurred_at": occurred_at.isoformat(),
+            "occurred_at": occurred_at.isoformat() if occurred_at else None,
+            "time_of_day": time_of_day,
             "verification_status": "unverified",
         })
     return normalized
@@ -101,7 +122,7 @@ async def import_aviator_capture(request: AviatorImportRequest):
         },
         "limitations": [
             "Only L, F, and TS fields are normalized; player, bet, and prize metrics are ignored.",
-            "TS numeric values are interpreted as Unix epoch milliseconds, matching JavaScript Date(ts) semantics in the referenced format.",
+            "TS numeric values are interpreted as Unix epoch milliseconds; the source CSV HH:mm-only Time field is preserved without inventing a calendar date.",
             "All records remain unverified; import does not establish Provably Fair validity.",
             "No browser automation, network capture, account access, or database persistence occurs.",
         ],
