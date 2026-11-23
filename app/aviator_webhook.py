@@ -1,6 +1,7 @@
 """HMAC-authenticated webhook for explicitly authorized normalized live feeds."""
 import hashlib
 import hmac
+import re
 import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -30,8 +31,8 @@ async def receive_signed_webhook(
         raise HTTPException(status_code=401, detail="Missing webhook signature headers")
     if not x_hamsa_timestamp.isascii() or not x_hamsa_timestamp.isdigit():
         raise HTTPException(status_code=401, detail="Invalid webhook timestamp")
-    if not x_hamsa_signature.startswith("sha256="):
-        raise HTTPException(status_code=401, detail="Signature must use sha256 format")
+    if not re.fullmatch(r"sha256=[0-9a-f]{64}", x_hamsa_signature):
+        raise HTTPException(status_code=401, detail="Signature must be a lowercase SHA-256 hex digest")
 
     timestamp = int(x_hamsa_timestamp)
     tolerance = max(30, int(settings.live_feed_webhook_tolerance_seconds))
@@ -46,9 +47,13 @@ async def receive_signed_webhook(
         except ValueError as exc:
             raise HTTPException(status_code=400, detail="Invalid Content-Length header") from exc
 
-    raw_body = await request.body()
-    if len(raw_body) > MAX_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
+    # Enforce the limit while streaming; do not buffer an unbounded chunked body.
+    body_buffer = bytearray()
+    async for chunk in request.stream():
+        body_buffer.extend(chunk)
+        if len(body_buffer) > MAX_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
+    raw_body = bytes(body_buffer)
 
     signed_payload = x_hamsa_timestamp.encode("ascii") + b"." + raw_body
     expected = "sha256=" + hmac.new(
