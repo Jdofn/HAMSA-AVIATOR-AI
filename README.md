@@ -42,3 +42,33 @@ The supported ingestion workflow is user-provided local exports or a source/API 
 6. API docs at `/docs`.
 
 For production, configure `APP_ENV=production`, persistent PostgreSQL `DATABASE_URL`, and a long random `DASHBOARD_ACCESS_TOKEN`. Never commit secrets.
+
+## Deployment on Railway
+
+Deploy from this repository using the included `Dockerfile` and `railway.json`. The configured health-check path is `/health`.
+
+Required production configuration:
+- `APP_ENV=production`
+- `DATABASE_URL`: persistent PostgreSQL connection string. Do not use ephemeral SQLite storage for production history.
+- `DASHBOARD_ACCESS_TOKEN`: long, randomly generated secret used to protect dashboard data operations.
+- `LOG_LEVEL=INFO`
+
+Optional configuration:
+- `LIVE_FEED_WEBHOOK_SECRET`: set only when an authorized sender will post signed feed batches.
+- `LIVE_FEED_WEBHOOK_TOLERANCE_SECONDS=300`
+- `FEED_STALE_AFTER_SECONDS=300`
+
+Never commit secrets, cookies, account passwords, or provider credentials. Configure secrets in Railway's service variables. The API service starts by running `python -m app.init_db` and then Uvicorn. A Telegram bot, if enabled, should be deployed as a separate service with `TELEGRAM_BOT_TOKEN` configured only there.
+
+## Earlier implementation phases
+
+- Phase 01–03: API foundation, defensive research utilities, offline data import, persisted round history, and dashboard.
+- Phase 04: authorized normalized live-feed ingestion — see [Phase 04 documentation](docs/PHASE_04_LIVE_FEED.md).
+- Phase 05: stored-source freshness and data-quality monitoring — see [Phase 05 documentation](docs/PHASE_05_SOURCE_MONITOR.md).
+- Phase 06: signed HMAC live-feed webhook receiver — see [Phase 06 documentation](docs/PHASE_06_LIVE_DATA_INTEGRATION.md).
+- Phase 07: separate sportsbook event data foundation — see [Phase 07 documentation](docs/PHASE_07_SPORTSBOOK_DATA.md).
+
+## External source audits
+
+- [1xBet / Aviator connectivity assessment](docs/1XBET_AVIATOR_CONNECTIVITY_ASSESSMENT.md): no public third-party Aviator historical-round read API has been verified; a production connector requires authorized provider access and a documented schema.
+- [Crash monitoring repository audit](docs/CRASH_MONITORING_SOURCE_AUDIT.md): the reviewed project is a WebSocket collector and dashboard, not a ready-made REST API. Session-token harvesting and credential scraping are not included in HAMSA.
