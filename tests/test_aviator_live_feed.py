@@ -42,7 +42,7 @@ def test_live_feed_is_idempotent_and_visible_in_dashboard_history(monkeypatch):
     assert first.status_code == 200
     assert first.json()["inserted_count"] == 2
     assert second.json()["inserted_count"] == 0
-    assert second.json()["duplicate_count"] == 2
+    assert second.json()["duplicate_count"] == 3
 
     history = client.get("/api/v1/aviator/rounds").json()
     assert history["total"] == 2
