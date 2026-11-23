@@ -6,16 +6,20 @@
 - Static API hardening recommendations.
 - Automated tests for scope and payload validation.
 
-## Phase 01B — Authorized data analysis
-- Import user-provided JSON/CSV/PCAP files with size limits.
-- Normalize HTTP/WebSocket metadata from authorized captures.
-- Redaction pipeline for cookies, authorization headers, and personal data.
-- Dataset provenance and SHA-256 integrity records.
+## Phase 01B — Offline data intelligence (implemented in branch)
+- JSON/CSV dataset inspection in memory.
+- Requester-supplied source and authorization-basis metadata.
+- SHA-256 integrity fingerprint.
+- Sensitive-key redaction before preview.
+- Bounded input, filename validation, and automated tests.
+- No persistence of submitted raw content.
 
-## Phase 02 — Cryptography and protocol lab
+## Phase 02 — Authorized protocol and cryptography lab
+- Parse sanitized HTTP/WebSocket metadata exports from owned or explicitly authorized test environments.
+- Add PCAP metadata parsing only after format, resource, and privacy safeguards are implemented.
 - Hash/HMAC/signature verification using user-owned data and authorized keys.
 - TLS configuration review for HAMSA-owned deployments.
-- Protocol schema registry and replayable synthetic fixtures.
+- Protocol schema registry and synthetic replay fixtures.
 - No credential extraction, third-party interception, or access-control bypass.
 
 ## Phase 03 — HAMSA security testing
