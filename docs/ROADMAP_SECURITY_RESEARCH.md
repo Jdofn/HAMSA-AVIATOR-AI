@@ -6,7 +6,7 @@
 - Static API hardening recommendations.
 - Automated tests for scope and payload validation.
 
-## Phase 01B — Offline data intelligence (implemented in branch)
+## Phase 01B — Offline data intelligence (merged to main)
 - JSON/CSV dataset inspection in memory.
 - Requester-supplied source and authorization-basis metadata.
 - SHA-256 integrity fingerprint.
