@@ -33,7 +33,8 @@ def test_imports_json_with_epoch_milliseconds():
         "authorization_basis": "Synthetic test data",
     })
     assert response.status_code == 200
-    assert response.json()["round_count"] if "round_count" in response.json() else response.json()["record_count"] == 1
+    assert response.json()["record_count"] == 1
+    assert response.json()["rounds"][0]["occurred_at"] is not None
 
 
 def test_rejects_missing_f_or_ts():
@@ -65,3 +66,19 @@ def test_rejects_oversized_record_count():
         assert "10000" in str(exc)
     else:
         raise AssertionError("Expected record limit to be enforced")
+
+
+def test_imports_original_headerless_six_column_csv():
+    response = client.post("/api/v1/data/aviator/import", json={
+        "file_name": "data.csv",
+        "format": "csv",
+        "content": "12:30,20,25,2.5,100,round-8\\n",
+        "source": "local export",
+        "authorization_basis": "Authorized local test export",
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["rounds"][0]["time_of_day"] == "12:30"
+    assert body["rounds"][0]["occurred_at"] is None
+    assert body["rounds"][0]["round_reference"] == "round-8"
+    assert "20" not in str(body["rounds"][0])
