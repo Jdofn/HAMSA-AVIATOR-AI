@@ -21,11 +21,11 @@ def list_rounds(
     _: None = Depends(require_dashboard_access),
 ):
     total = db.query(func.count(RoundResult.id)).filter(
-        RoundResult.provider == "aviator_capture"
+        RoundResult.provider.in_(["aviator_capture", "authorized_live_feed"])
     ).scalar() or 0
     rows = (
         db.query(RoundResult)
-        .filter(RoundResult.provider == "aviator_capture")
+        .filter(RoundResult.provider.in_(["aviator_capture", "authorized_live_feed"]))
         .order_by(RoundResult.id.desc())
         .offset(offset)
         .limit(limit)
@@ -59,7 +59,7 @@ def history_summary(
     db: Session = Depends(get_db),
     _: None = Depends(require_dashboard_access),
 ):
-    query = db.query(RoundResult).filter(RoundResult.provider == "aviator_capture")
+    query = db.query(RoundResult).filter(RoundResult.provider.in_(["aviator_capture", "authorized_live_feed"]))
     count = query.count()
     if not count:
         return {
@@ -79,7 +79,7 @@ def history_summary(
         func.min(RoundResult.multiplier),
         func.max(RoundResult.multiplier),
         func.max(RoundResult.created_at),
-    ).filter(RoundResult.provider == "aviator_capture").first()
+    ).filter(RoundResult.provider.in_(["aviator_capture", "authorized_live_feed"])).first()
 
     values = [row.multiplier for row in query.order_by(RoundResult.id.asc()).all()]
     return {
@@ -123,7 +123,7 @@ canvas{width:100%;height:210px;display:block}.notice{font-size:12px;color:var(--
 </style>
 </head>
 <body><main>
-<header class="top"><div><h1>HAMSA <span style="color:var(--accent)">AVIATOR AI</span></h1><div class="sub">Historical research · Imported rounds · Local analytics</div></div><button id="refresh" class="secondary" style="width:auto">Refresh data</button></header>
+<header class="top"><div><h1>HAMSA <span style="color:var(--accent)">AVIATOR AI</span></h1><div class="sub">Historical research · Authorized feed · 5-second live refresh</div></div><button id="refresh" class="secondary" style="width:auto">Refresh data</button></header>
 <section class="panel">
 <h2 style="margin-top:0">Access & data import</h2>
 <div class="formgrid">
@@ -163,6 +163,6 @@ async function loadRounds(reset=false){if(reset){offset=0;$('rows').replaceChild
 async function refreshAll(){try{status('Loading saved history…');await loadSummary();await loadRounds(true);status('Saved history loaded.')}catch(e){status(e.message,true)}}
 $('refresh').onclick=refreshAll;$('refresh2').onclick=refreshAll;$('more').onclick=async()=>{try{await loadRounds(false)}catch(e){status(e.message,true)}};
 $('import').onclick=async()=>{const file=$('file').files[0];if(!file){status('Choose a CSV or JSON file first.',true);return}if(file.size>1000000){status('File exceeds the 1 MB limit.',true);return}const button=$('import');button.disabled=true;try{const content=await file.text(),format=file.name.toLowerCase().endsWith('.json')?'json':'csv';const result=await api('/api/v1/data/aviator/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_name:file.name,format,content,source:$('source').value,authorization_basis:$('basis').value})});status('Import complete: '+result.inserted_count+' saved, '+result.duplicate_count+' duplicates skipped.');await refreshAll()}catch(e){status(e.message,true)}finally{button.disabled=false}};
-drawChart([]);refreshAll();
+drawChart([]);refreshAll();setInterval(()=>{if(!document.hidden)refreshAll()},5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshAll()});
 </script></body></html>
 """
