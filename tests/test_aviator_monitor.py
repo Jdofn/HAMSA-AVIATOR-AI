@@ -3,9 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.db import get_db
 from app.main import app
-from app.models import RoundResult
 
 client = TestClient(app)
 
@@ -19,7 +17,6 @@ def _feed(records):
 
 
 def test_quality_monitor_reports_no_data():
-    monkeypatch = None
     response = client.get("/api/v1/aviator/monitor/quality")
     assert response.status_code == 200
     body = response.json()
