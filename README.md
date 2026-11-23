@@ -71,3 +71,11 @@ Do not commit `.env` or secrets.
 - PCAP parsing, asymmetric signatures, live collection, and remote TLS probing remain deferred.
 
 See [Phase 02 lab scope](docs/PHASE_02_LAB.md). All operations are offline and limited to data and keys you own or are authorized to use.
+
+
+## Offline Aviator CF Capture compatibility
+- `POST /api/v1/data/aviator/import` accepts user-supplied CSV/JSON exports containing `L`, `F`, and `TS` fields.
+- Normalizes round reference, multiplier, and timestamp for research; numeric timestamps are interpreted as Unix milliseconds.
+- Ignores player/bet/prize metrics, marks imported values unverified, and does not persist them.
+- Does not include the reference repository's Puppeteer/stealth browser collector or WebSocket interception logic.
+- Reference format: [an0nlk/1XBET_Crash_CF_Capture](https://github.com/an0nlk/1XBET_Crash_CF_Capture).
