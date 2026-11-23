@@ -1,7 +1,7 @@
 """Offline importer for user-supplied Aviator CF Capture CSV/JSON exports.
 
-This module does not launch browsers, connect to betting sites, inspect network
-traffic, or persist imported records.
+No browser automation, third-party network access, session inspection, or
+database persistence is performed here.
 """
 import csv
 import io
@@ -28,7 +28,6 @@ class AviatorImportRequest(BaseModel):
 
 def _timestamp(value: Any) -> datetime:
     if isinstance(value, (int, float)) or (isinstance(value, str) and value.strip().isdigit()):
-        # The source project's JavaScript Date(ts) usage indicates epoch milliseconds.
         return datetime.fromtimestamp(float(value) / 1000.0, tz=timezone.utc)
     if isinstance(value, str):
         parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
@@ -36,6 +35,16 @@ def _timestamp(value: Any) -> datetime:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
     raise ValueError("TS must be epoch milliseconds or an ISO-8601 timestamp")
+
+
+def _optional_metric(fields: dict[str, Any], *keys: str):
+    raw = next((fields[key] for key in keys if fields.get(key) not in (None, "")), None)
+    if raw is None:
+        return None
+    value = float(raw)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError("source metrics must be finite and non-negative")
+    return value
 
 
 def normalize_capture_records(content: str, file_format: str) -> list[dict[str, Any]]:
@@ -47,8 +56,7 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
             if not isinstance(parsed, list) or not all(isinstance(row, dict) for row in parsed):
                 raise ValueError("JSON must contain an array of capture objects")
             rows = parsed
-        else:
-            # Legacy source writes headerless rows: Time, players, bets, F, prize, L.
+        elif file_format == "csv":
             raw_rows = list(csv.reader(io.StringIO(content)))
             if not raw_rows:
                 raise ValueError("CSV must contain at least one data row")
@@ -61,10 +69,16 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
                 for values in raw_rows:
                     if len(values) != 6:
                         raise ValueError("Headerless capture CSV rows must contain exactly 6 columns")
-                    time_value, _players, _bets, multiplier_value, _prize, round_value = values
-                    rows.append({"Time": time_value, "F": multiplier_value, "L": round_value})
+                    time_value, players, bets, multiplier_value, prize, round_value = values
+                    rows.append({
+                        "Time": time_value, "totalPlayers": players,
+                        "totalBets": bets, "F": multiplier_value,
+                        "totalPrize": prize, "L": round_value,
+                    })
             if not rows or not rows[0]:
                 raise ValueError("CSV must contain at least one data row")
+        else:
+            raise ValueError("format must be json or csv")
     except (json.JSONDecodeError, csv.Error) as exc:
         raise ValueError(f"Invalid {file_format.upper()} capture export") from exc
 
@@ -87,14 +101,22 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
                 time_of_day = str(fields["time"]).strip()
                 datetime.strptime(time_of_day, "%H:%M")
                 occurred_at = None
+            source_metrics = {
+                "players": _optional_metric(fields, "totalplayers", "players"),
+                "bets": _optional_metric(fields, "totalbets", "bets"),
+                "prize": _optional_metric(fields, "totalprize", "prize"),
+            }
+            source_metrics = {key: value for key, value in source_metrics.items() if value is not None}
         except (TypeError, ValueError, OverflowError, OSError) as exc:
-            raise ValueError(f"Row {index} has invalid F or TS value") from exc
+            raise ValueError(f"Row {index} has invalid multiplier, timestamp, or source metric") from exc
+
         round_reference = fields.get("l")
         normalized.append({
             "round_reference": str(round_reference)[:128] if round_reference not in (None, "") else None,
             "multiplier": multiplier,
             "occurred_at": occurred_at.isoformat() if occurred_at else None,
             "time_of_day": time_of_day,
+            "source_metrics": source_metrics,
             "verification_status": "unverified",
         })
     return normalized
@@ -121,9 +143,9 @@ async def import_aviator_capture(request: AviatorImportRequest):
             "independently_verified": False,
         },
         "limitations": [
-            "Only L, F, and TS fields are normalized; player, bet, and prize metrics are ignored.",
-            "TS numeric values are interpreted as Unix epoch milliseconds; the source CSV HH:mm-only Time field is preserved without inventing a calendar date.",
+            "L, F, TS/Time and available aggregate players/bets/prize metrics are normalized; no individual account identities are collected.",
+            "Numeric TS values are interpreted as Unix epoch milliseconds; HH:mm-only Time values are preserved without inventing a calendar date.",
             "All records remain unverified; import does not establish Provably Fair validity.",
-            "No browser automation, network capture, account access, or database persistence occurs.",
+            "No browser automation, third-party network capture, account access, or database persistence occurs.",
         ],
     }
