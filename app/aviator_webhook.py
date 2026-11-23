@@ -35,15 +35,23 @@ async def receive_signed_webhook(
         raise HTTPException(status_code=401, detail="Missing webhook signature headers")
     try:
         timestamp = int(x_hamsa_timestamp)
-    except (TypeError, ValueError):
+        timestamp_bytes = x_hamsa_timestamp.encode("ascii")
+    except (TypeError, ValueError, UnicodeEncodeError):
         raise HTTPException(status_code=401, detail="Invalid webhook timestamp")
     if abs(int(time.time()) - timestamp) > MAX_CLOCK_SKEW_SECONDS:
         raise HTTPException(status_code=401, detail="Webhook timestamp outside allowed window")
 
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_BODY_BYTES:
+                raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length header")
     raw_body = await request.body()
     if len(raw_body) > MAX_BODY_BYTES:
         raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
-    signed_payload = x_hamsa_timestamp.encode("ascii") + b"." + raw_body
+    signed_payload = timestamp_bytes + b"." + raw_body
     expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
     supplied = x_hamsa_signature.removeprefix("sha256=").strip().lower()
     if not hmac.compare_digest(expected, supplied):
@@ -52,6 +60,6 @@ async def receive_signed_webhook(
     try:
         payload = LiveFeedBatch.model_validate_json(raw_body)
     except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+        raise HTTPException(status_code=422, detail="Invalid normalized live-feed payload") from exc
 
     return ingest_authorized_feed(payload=payload, db=db, _=None)
