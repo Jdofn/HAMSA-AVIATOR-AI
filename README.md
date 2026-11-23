@@ -1,4 +1,4 @@
-# HAMSA AVIATOR AI — Phase 08
+# HAMSA AVIATOR AI — Phase 09
 
 Personal Aviator research platform for authorized data ingestion, persisted round history, descriptive analytics, and defensive security research.
 
@@ -10,6 +10,18 @@ Personal Aviator research platform for authorized data ingestion, persisted roun
 - Time-of-day grouping: timestamped rounds are normalized to UTC and summarized by hour.
 - Requires at least two rounds; maximum 10,000; timestamps must include an explicit timezone.
 - Descriptive research only. No next-round prediction, betting signal, or guaranteed outcome.
+
+## Phase 09 — Data Intelligence & Research Engine
+
+- `GET /api/v1/aviator/research/overview` analyzes persisted `aviator_capture` rounds from CSV/JSON imports.
+- Distribution profile: mean, median, standard deviation, P05/P25/P75/P95, and threshold frequencies (1.5x/2x/5x/10x/50x).
+- Sequence diagnostics: lag-1 correlation and a median-split runs diagnostic, explicitly labeled exploratory.
+- Chronological comparison: first-half versus second-half sample means and 2x rates.
+- UTC time-of-day groups with sample counts and 2x rates.
+- Data-quality profile: invalid multipliers, missing source/round IDs, unverified records, timestamp coverage, and inter-event gaps.
+- Reads at most 20,000 stored rounds per request; default sample is the earliest 5,000 rows in the stored chronology.
+- Requires the dashboard access token via `X-Dashboard-Token`.
+- Version 0.10.0. Research is retrospective and descriptive only; no future-round prediction or betting signal.
 
 ## Current data connectivity status
 
