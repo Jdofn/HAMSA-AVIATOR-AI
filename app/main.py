@@ -28,7 +28,7 @@ app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
 async def root():
     return {
         "service": "HAMSA AVIATOR AI",
-        "phase": "02",
+        "phase": "03",
         "status": "running",
         "mode": "research",
         "data_source": "user_supplied_exports_only",
