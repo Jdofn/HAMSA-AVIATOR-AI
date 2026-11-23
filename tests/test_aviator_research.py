@@ -33,7 +33,7 @@ def test_phase09_research_overview_uses_persisted_history():
     body = response.json()
     assert body["mode"] == "retrospective_descriptive_research_only"
     assert body["round_count"] == 6
-    assert body["distribution"]["rates"]["at_least_2x"] == 4 / 6
+    assert body["distribution"]["rates"]["at_least_2x"] == 0.666667
     assert body["data_quality"]["unverified_rows"] == 6
     assert "not forecasts" in body["limitations"][2]
 
