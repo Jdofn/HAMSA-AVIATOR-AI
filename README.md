@@ -1,4 +1,4 @@
-# HAMSA AVIATOR AI — Phase 03
+# HAMSA AVIATOR AI — Phase 04
 
 Personal Aviator research platform for offline capture imports, persisted round history, historical analytics, and defensive security research.
 
@@ -20,7 +20,7 @@ Personal Aviator research platform for offline capture imports, persisted round 
   - `GET /api/v1/aviator/summary`
 - Responsive dashboard:
   - `GET /dashboard`
-  - Upload a local CSV/JSON export, save it to the configured database, view aggregate statistics, chart recent multipliers, and browse paginated history.
+  - Upload a local CSV/JSON export, save it to the configured database, view aggregate statistics, chart recent multipliers, and browse paginated history. The dashboard refreshes saved summary/history every five seconds while the tab is visible.
 - Defensive security endpoints and offline HMAC verification remain available under `/api/v1/security` and `/api/v1/lab`.
 
 ## Dashboard setup and access protection
@@ -61,3 +61,4 @@ API docs: `http://127.0.0.1:8000/docs`.
 Deploy using the included Dockerfile and `railway.json`. Configure `APP_ENV=production`, `DATABASE_URL`, `DASHBOARD_ACCESS_TOKEN`, and `LOG_LEVEL=INFO`. Use Railway PostgreSQL or another persistent PostgreSQL service for retained history.
 
 The API and Telegram bot may run as separate Railway services. Set `TELEGRAM_BOT_TOKEN` only on the bot service.
+\n\n## Phase 04 — Authorized live feed\nSee [Phase 04 implementation and request contract](docs/PHASE_04_LIVE_FEED.md). This is an authenticated ingestion adapter, not a 1xBet scraper. The operator is responsible for ensuring that the upstream source and collection method are authorized. No browser-session extraction, protected WebSocket interception, anti-bot bypass, or prediction logic is included.\n
