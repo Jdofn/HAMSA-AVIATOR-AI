@@ -3,7 +3,6 @@
 This module does not call undocumented 1xBet endpoints. An authorized adapter
 must submit normalized event and latest 1X2 odds data.
 """
-import math
 from datetime import datetime, timezone
 from typing import Literal
 
