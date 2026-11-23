@@ -63,3 +63,28 @@ def test_signed_webhook_rejects_tampering_and_stale_timestamp(monkeypatch):
     assert client.post("/api/v1/aviator/feed/webhook", content=tampered, headers=headers).status_code == 401
     stale_headers = signed_headers(body, secret, int(time.time()) - 600)
     assert client.post("/api/v1/aviator/feed/webhook", content=body, headers=stale_headers).status_code == 401
+
+
+def test_signed_webhook_rejects_non_sha256_signature_and_future_timestamp(monkeypatch):
+    secret = "phase06-extra-test-secret"
+    monkeypatch.setattr(settings, "live_feed_webhook_secret", secret)
+    body = json.dumps({
+        "source": "authorized test provider",
+        "authorization_basis": "Synthetic test fixture",
+        "records": [{"round_id": "webhook-phase06-003", "multiplier": 1.9}],
+    }).encode()
+    headers = signed_headers(body, secret)
+    headers["X-HAMSA-Signature"] = headers["X-HAMSA-Signature"].removeprefix("sha256=")
+    assert client.post("/api/v1/aviator/feed/webhook", content=body, headers=headers).status_code == 401
+
+    future = signed_headers(body, secret, int(time.time()) + 600)
+    assert client.post("/api/v1/aviator/feed/webhook", content=body, headers=future).status_code == 401
+
+
+def test_signed_webhook_rejects_oversized_body(monkeypatch):
+    secret = "phase06-large-body-secret"
+    monkeypatch.setattr(settings, "live_feed_webhook_secret", secret)
+    body = b" " * 256_001
+    headers = signed_headers(body, secret)
+    response = client.post("/api/v1/aviator/feed/webhook", content=body, headers=headers)
+    assert response.status_code == 413
