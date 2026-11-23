@@ -1,8 +1,4 @@
-"""Signed webhook adapter for operator-authorized upstream providers.
-
-Signature format: HMAC-SHA256(secret, timestamp + "." + raw_request_body), hex encoded.
-This endpoint does not fetch or scrape any third-party service.
-"""
+"""HMAC-authenticated webhook for explicitly authorized normalized live feeds."""
 import hashlib
 import hmac
 import time
@@ -17,7 +13,6 @@ from app.db import get_db
 
 router = APIRouter()
 MAX_BODY_BYTES = 256_000
-MAX_CLOCK_SKEW_SECONDS = 300
 
 
 @router.post("/feed/webhook")
@@ -27,18 +22,20 @@ async def receive_signed_webhook(
     x_hamsa_signature: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
-    """Accept a signed normalized batch from a provider the operator may use."""
+    """Verify HMAC over timestamp + exact raw body, then persist normalized events."""
     secret = settings.live_feed_webhook_secret
     if not secret:
         raise HTTPException(status_code=503, detail="Signed webhook is not configured")
     if not x_hamsa_timestamp or not x_hamsa_signature:
         raise HTTPException(status_code=401, detail="Missing webhook signature headers")
-    try:
-        timestamp = int(x_hamsa_timestamp)
-        timestamp_bytes = x_hamsa_timestamp.encode("ascii")
-    except (TypeError, ValueError, UnicodeEncodeError):
+    if not x_hamsa_timestamp.isascii() or not x_hamsa_timestamp.isdigit():
         raise HTTPException(status_code=401, detail="Invalid webhook timestamp")
-    if abs(int(time.time()) - timestamp) > MAX_CLOCK_SKEW_SECONDS:
+    if not x_hamsa_signature.startswith("sha256="):
+        raise HTTPException(status_code=401, detail="Signature must use sha256 format")
+
+    timestamp = int(x_hamsa_timestamp)
+    tolerance = max(30, int(settings.live_feed_webhook_tolerance_seconds))
+    if abs(int(time.time()) - timestamp) > tolerance:
         raise HTTPException(status_code=401, detail="Webhook timestamp outside allowed window")
 
     content_length = request.headers.get("content-length")
@@ -46,15 +43,18 @@ async def receive_signed_webhook(
         try:
             if int(content_length) > MAX_BODY_BYTES:
                 raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid Content-Length header")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length header") from exc
+
     raw_body = await request.body()
     if len(raw_body) > MAX_BODY_BYTES:
         raise HTTPException(status_code=413, detail="Webhook body exceeds 256 KB limit")
-    signed_payload = timestamp_bytes + b"." + raw_body
-    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
-    supplied = x_hamsa_signature.removeprefix("sha256=").strip().lower()
-    if not hmac.compare_digest(expected, supplied):
+
+    signed_payload = x_hamsa_timestamp.encode("ascii") + b"." + raw_body
+    expected = "sha256=" + hmac.new(
+        secret.encode("utf-8"), signed_payload, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(expected, x_hamsa_signature):
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     try:
@@ -62,4 +62,9 @@ async def receive_signed_webhook(
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail="Invalid normalized live-feed payload") from exc
 
-    return ingest_authorized_feed(payload=payload, db=db, _=None)
+    result = ingest_authorized_feed(payload=payload, db=db, _=None)
+    result["authentication"] = "hmac_sha256_verified"
+    result["limitations"].append(
+        "HMAC confirms integrity and possession of the configured shared secret; it does not independently verify upstream authorization or game-result truth."
+    )
+    return result
