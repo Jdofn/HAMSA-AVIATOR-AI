@@ -1,5 +1,5 @@
 """Personal Aviator dashboard and persisted-history read APIs."""
-from datetime import datetime, timezone
+import statistics
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -78,7 +78,7 @@ def history_summary(
         func.avg(RoundResult.multiplier),
         func.min(RoundResult.multiplier),
         func.max(RoundResult.multiplier),
-        func.sum((RoundResult.multiplier >= 2).cast if False else 0),
+        func.max(RoundResult.created_at),
     ).filter(RoundResult.provider == "aviator_capture").first()
 
     values = [row.multiplier for row in query.order_by(RoundResult.id.asc()).all()]
@@ -87,12 +87,12 @@ def history_summary(
         "mean": round(float(stats[0]), 4) if stats[0] is not None else None,
         "minimum": float(stats[1]) if stats[1] is not None else None,
         "maximum": float(stats[2]) if stats[2] is not None else None,
-        "median": round(float(__import__("statistics").median(values)), 4),
+        "median": round(float(statistics.median(values)), 4),
         "at_least_2x": sum(value >= 2 for value in values),
         "at_least_5x": sum(value >= 5 for value in values),
         "at_least_10x": sum(value >= 10 for value in values),
         "unverified_count": query.filter(RoundResult.verification_status == "unverified").count(),
-        "last_imported_at": datetime.now(timezone.utc).isoformat(),
+        "last_imported_at": stats[3].isoformat() if stats[3] else None,
         "disclaimer": "Historical description only; not a forecast or betting signal.",
     }
 
