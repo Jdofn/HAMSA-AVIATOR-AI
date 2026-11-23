@@ -84,3 +84,15 @@ def test_sportsbook_event_import_rejects_invalid_odds():
     }
     response = client.post("/api/v1/catalog/sportsbook/events/import", json=payload)
     assert response.status_code == 422
+
+
+def test_crash_monitoring_reference_is_catalogued_not_connected():
+    response = client.get("/api/v1/catalog/sportsbook/sources/crash-monitoring")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["category"] == "aviator_research_reference"
+    assert body["rest_api_available_in_repository"] is False
+    assert body["integration_status"] == "audited_catalogued_not_connected"
+    assert body["code_copied"] is False
+    assert body["live_connection_enabled"] is False
+    assert any("WebSocket scraping" in item for item in body["limitations"])
