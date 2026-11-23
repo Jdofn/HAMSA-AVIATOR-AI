@@ -4,9 +4,7 @@ This endpoint accepts normalized round events from a source the operator is
 authorized to use. It does not connect to third-party sites, inspect browser
 sessions, or intercept network traffic.
 """
-import re
 from datetime import datetime, timezone
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -18,7 +16,6 @@ from app.models import RoundResult
 
 router = APIRouter()
 MAX_BATCH_SIZE = 250
-TIME_PATTERN = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
 
 class LiveRound(BaseModel):
@@ -55,8 +52,13 @@ def ingest_authorized_feed(
     """Persist a bounded batch from an authorized adapter; duplicate IDs are skipped."""
     inserted = 0
     duplicates = 0
+    seen_round_ids: set[str] = set()
     try:
         for record in payload.records:
+            if record.round_id in seen_round_ids:
+                duplicates += 1
+                continue
+            seen_round_ids.add(record.round_id)
             existing = db.query(RoundResult.id).filter(
                 RoundResult.provider == "authorized_live_feed",
                 RoundResult.round_id == record.round_id,
