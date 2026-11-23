@@ -141,7 +141,11 @@ def normalize_capture_records(content: str, file_format: str) -> list[dict[str, 
 
 
 @router.post("/aviator/import")
-async def import_aviator_capture(\n    request: AviatorImportRequest,\n    db: Session = Depends(get_db),\n    _: None = Depends(require_dashboard_access),\n):
+async def import_aviator_capture(
+    request: AviatorImportRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_dashboard_access),
+):
     """Normalize and persist a local export; duplicate rows are skipped."""
     try:
         rounds = normalize_capture_records(request.content, request.format)
