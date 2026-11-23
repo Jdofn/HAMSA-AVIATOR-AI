@@ -10,7 +10,7 @@ Personal Aviator research platform for offline capture imports, authorized signe
 - **Phase 06 signed webhook ingestion:** `POST /api/v1/aviator/feed/webhook`.
   - HMAC-SHA256 signature over `timestamp + "." + exact raw request body`.
   - Headers: `X-HAMSA-Timestamp` (Unix seconds), `X-HAMSA-Signature` (`sha256=<hex>`).
-  - Five-minute replay window, constant-time signature comparison, 256 KB body limit.
+  - Configurable timestamp tolerance (default five minutes; minimum 30 seconds), strict SHA-256 signature format, constant-time comparison, 256 KB body limit.
   - Uses the Phase 04 normalized event schema and existing idempotent database persistence.
 - Quality monitor: `GET /api/v1/aviator/monitor/quality`.
 - Dashboard: `GET /dashboard`.
