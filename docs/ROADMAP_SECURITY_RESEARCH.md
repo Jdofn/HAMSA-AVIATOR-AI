@@ -14,12 +14,12 @@
 - Bounded input, filename validation, and automated tests.
 - No persistence of submitted raw content.
 
-## Phase 02 — Authorized protocol and cryptography lab
-- Parse sanitized HTTP/WebSocket metadata exports from owned or explicitly authorized test environments.
-- Add PCAP metadata parsing only after format, resource, and privacy safeguards are implemented.
-- Hash/HMAC/signature verification using user-owned data and authorized keys.
-- TLS configuration review for HAMSA-owned deployments.
-- Protocol schema registry and synthetic replay fixtures.
+## Phase 02 — Authorized protocol and cryptography lab (implemented core)
+- Structured HTTP/WebSocket metadata validation and allowlist-only header summaries.
+- In-memory HMAC-SHA256/HMAC-SHA512 verification with constant-time comparison.
+- Requester-supplied provenance claims explicitly marked unverified.
+- Automated tests for protocol shape, header filtering, provenance, and HMAC.
+- PCAP parsing, asymmetric signatures, live collection, and remote TLS probing deferred pending separate safeguards.
 - No credential extraction, third-party interception, or access-control bypass.
 
 ## Phase 03 — HAMSA security testing
