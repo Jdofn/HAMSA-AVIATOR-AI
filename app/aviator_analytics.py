@@ -1,39 +1,46 @@
 """Descriptive analytics for user-authorized Aviator round exports.
 
-This module reports historical distributions only. It does not predict future
-rounds, generate betting signals, or connect to third-party services.
+Reports historical distributions only. It does not predict future rounds,
+generate betting signals, or connect to third-party services.
 """
 import math
 import statistics
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
 MAX_ROUNDS = 10_000
 
 
+class RoundSourceMetrics(BaseModel):
+    players: Optional[float] = Field(default=None, ge=0)
+    bets: Optional[float] = Field(default=None, ge=0)
+    prize: Optional[float] = Field(default=None, ge=0)
+
+    @field_validator("players", "bets", "prize")
+    @classmethod
+    def finite_metric(cls, value):
+        if value is not None and not math.isfinite(value):
+            raise ValueError("source metrics must be finite")
+        return value
+
+
 class RoundSample(BaseModel):
     multiplier: float = Field(gt=0, le=1_000_000)
     round_reference: Optional[str] = Field(default=None, max_length=128)
     occurred_at: Optional[str] = Field(default=None, max_length=64)
-    players: Optional[int] = Field(default=None, ge=0)
+    players: Optional[float] = Field(default=None, ge=0)
     bets: Optional[float] = Field(default=None, ge=0)
     prize: Optional[float] = Field(default=None, ge=0)
+    source_metrics: Optional[RoundSourceMetrics] = None
 
-    @field_validator("multiplier")
+    @field_validator("multiplier", "players", "bets", "prize")
     @classmethod
-    def finite_multiplier(cls, value: float) -> float:
-        if not math.isfinite(value):
-            raise ValueError("multiplier must be finite")
-        return value
-
-    @field_validator("bets", "prize")
-    @classmethod
-    def finite_optional_metrics(cls, value):
+    def finite_numbers(cls, value):
         if value is not None and not math.isfinite(value):
-            raise ValueError("metrics must be finite")
+            raise ValueError("numeric values must be finite")
         return value
 
 
@@ -56,7 +63,6 @@ def _streak(values: list[float], predicate) -> int:
 
 @router.post("/analyze")
 async def analyze_aviator_history(request: AviatorAnalyzeRequest):
-    """Return descriptive statistics for historical rounds supplied by the caller."""
     values = [round_.multiplier for round_ in request.rounds]
     ordered = sorted(values)
     count = len(values)
@@ -70,11 +76,15 @@ async def analyze_aviator_history(request: AviatorAnalyzeRequest):
         weight = position - lower
         return round(ordered[lower] * (1 - weight) + ordered[upper] * weight, 4)
 
-    metrics = {
-        "players": [r.players for r in request.rounds if r.players is not None],
-        "bets": [r.bets for r in request.rounds if r.bets is not None],
-        "prize": [r.prize for r in request.rounds if r.prize is not None],
-    }
+    metrics = {"players": [], "bets": [], "prize": []}
+    for sample in request.rounds:
+        for name in metrics:
+            value = getattr(sample, name)
+            if value is None and sample.source_metrics is not None:
+                value = getattr(sample.source_metrics, name)
+            if value is not None:
+                metrics[name].append(value)
+
     optional_summary = {}
     for name, series in metrics.items():
         if series:
@@ -103,10 +113,8 @@ async def analyze_aviator_history(request: AviatorAnalyzeRequest):
             "median": round(statistics.median(values), 4),
             "population_stddev": round(statistics.pstdev(values), 4),
             "percentiles": {
-                "p25": percentile(0.25),
-                "p50": percentile(0.50),
-                "p75": percentile(0.75),
-                "p90": percentile(0.90),
+                "p25": percentile(0.25), "p50": percentile(0.50),
+                "p75": percentile(0.75), "p90": percentile(0.90),
             },
         },
         "thresholds": {
@@ -129,7 +137,7 @@ async def analyze_aviator_history(request: AviatorAnalyzeRequest):
         },
         "limitations": [
             "Statistics describe only the supplied historical sample.",
-            "Aviator rounds are not made predictable by historical frequencies or streaks.",
+            "Historical frequencies and streaks do not predict future Aviator rounds.",
             "No betting recommendation, next-round prediction, or guaranteed outcome is produced.",
             "Source and authorization claims are requester-supplied and not independently verified.",
         ],
