@@ -8,7 +8,7 @@ def test_root_status():
     assert response.status_code == 200
     body = response.json()
     assert body["service"] == "HAMSA AVIATOR AI"
-    assert body["phase"] == "06"
+    assert body["phase"] == "07"
 
 def test_health():
     response = client.get("/health")
