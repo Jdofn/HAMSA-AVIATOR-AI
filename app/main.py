@@ -10,6 +10,7 @@ from app.aviator_dashboard import router as aviator_dashboard_router
 from app.aviator_live_feed import router as aviator_live_feed_router
 from app.aviator_monitor import router as aviator_monitor_router
 from app.aviator_webhook import router as aviator_webhook_router
+from app.sportsbook_catalog import router as sportsbook_catalog_router
 
 app = FastAPI(
     title="HAMSA AVIATOR AI",
@@ -28,6 +29,7 @@ app.include_router(aviator_live_feed_router, prefix="/api/v1/aviator", tags=["au
 app.include_router(aviator_webhook_router, prefix="/api/v1/aviator", tags=["signed-live-webhook"])
 app.include_router(aviator_monitor_router, prefix="/api/v1/aviator", tags=["source-monitor"])
 app.include_router(lab_router, prefix="/api/v1/lab", tags=["authorized-lab"])
+app.include_router(sportsbook_catalog_router, prefix="/api/v1/catalog/sportsbook", tags=["sportsbook-catalog"])
 
 
 @app.get("/", tags=["system"])
