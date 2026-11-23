@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     telegram_admin_ids: str = ""
     dashboard_access_token: str = ""
     live_feed_webhook_secret: str = ""
+    live_feed_webhook_tolerance_seconds: int = 300
     feed_stale_after_seconds: int = 300
     log_level: str = "INFO"
 
