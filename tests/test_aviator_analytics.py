@@ -46,6 +46,18 @@ def test_optional_source_metrics_are_aggregated_not_exposed_per_round():
     assert "players" not in response.json()["multipliers"]
 
 
+def test_analytics_accepts_importer_nested_source_metrics():
+    response = client.post("/api/v1/aviator/analyze", json=_payload([
+        {"multiplier": 1.5, "source_metrics": {"players": 10, "bets": 20, "prize": 30}},
+        {"multiplier": 2.5, "source_metrics": {"players": 20, "bets": 40, "prize": 60}},
+    ]))
+    assert response.status_code == 200
+    metrics = response.json()["source_metrics"]
+    assert metrics["players"]["average"] == 15.0
+    assert metrics["bets"]["total"] == 60
+    assert metrics["prize"]["total"] == 90
+
+
 def test_rejects_empty_rounds_and_nonpositive_multipliers():
     empty = client.post("/api/v1/aviator/analyze", json=_payload([]))
     invalid = client.post("/api/v1/aviator/analyze", json=_payload([{"multiplier": 0}]))
