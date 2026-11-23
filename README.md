@@ -1,42 +1,50 @@
-# HAMSA AVIATOR AI — Phase 06
+# HAMSA AVIATOR AI — Phase 05
 
-Personal Aviator research platform for offline capture imports, authorized signed live-data ingestion, persisted round history, historical analytics, and defensive security research.
+Personal Aviator research platform for offline capture imports, persisted round history, historical analytics, and defensive security research.
 
 ## Current capabilities
-- FastAPI backend, SQLAlchemy persistence, Telegram bot foundation, health and system status.
-- Offline CSV/JSON import: `POST /api/v1/data/aviator/import`.
-- Historical descriptive analytics: `POST /api/v1/aviator/analyze`.
-- Authenticated normalized batch ingestion: `POST /api/v1/aviator/feed/batch` (dashboard token).
-- **Phase 06 signed webhook ingestion:** `POST /api/v1/aviator/feed/webhook`.
-  - HMAC-SHA256 signature over `timestamp + "." + exact raw request body`.
-  - Headers: `X-HAMSA-Timestamp` (Unix seconds), `X-HAMSA-Signature` (`sha256=<hex>`).
-  - Configurable timestamp tolerance (default five minutes; minimum 30 seconds), strict SHA-256 signature format, constant-time comparison, 256 KB body limit.
-  - Uses the Phase 04 normalized event schema and existing idempotent database persistence.
-- Quality monitor: `GET /api/v1/aviator/monitor/quality`.
-- Dashboard: `GET /dashboard`.
+- FastAPI backend with health and system-status endpoints.
+- SQLAlchemy database and additive startup migration for round metadata.
+- Telegram bot foundation with `/start` and `/status`.
+- Offline JSON/CSV import compatible with the reference capture file formats:
+  - `POST /api/v1/data/aviator/import`
+  - Supports `F`, `L`, `TS` and the six-column headerless CSV format `Time,totalPlayers,totalBets,F,totalPrize,L`.
+  - Persists normalized rounds in `round_results`, including aggregate players/bets/prize metrics, source label, file name, and import batch SHA-256.
+  - Deduplicates by provider + source round reference; when no reference exists, uses a stable batch-hash/row key.
+  - Limits uploads to 1 MB and 10,000 rows.
+- Historical analytics:
+  - `POST /api/v1/aviator/analyze` — mean, median, standard deviation, percentiles, multiplier distribution, threshold hit rates, streaks, and recent-sample mean.
+  - Descriptive only; no next-round prediction or betting signals.
+- Persisted history API:
+  - `GET /api/v1/aviator/rounds?limit=50&offset=0`
+  - `GET /api/v1/aviator/summary`
+- Responsive dashboard:
+  - `GET /dashboard`
+  - Upload a local CSV/JSON export, save it to the configured database, view aggregate statistics, chart recent multipliers, and browse paginated history. The dashboard refreshes saved summary/history every five seconds while the tab is visible.
+- Defensive security endpoints and offline HMAC verification remain available under `/api/v1/security` and `/api/v1/lab`.
 
-## Source catalog categories
+## Dashboard setup and access protection
+Set these Railway/service variables:
+- `APP_ENV=production`
+- `DATABASE_URL` — use a persistent PostgreSQL database for production; ephemeral container storage is not suitable for durable SQLite history.
+- `DASHBOARD_ACCESS_TOKEN` — a long, random secret. The dashboard sends it as `X-Dashboard-Token` for import and history APIs.
 
-### Sportsbook — reviewed 1xBet PHP reference
-- Catalog endpoint: `GET /api/v1/catalog/sportsbook/sources/1xbet-php`.
-- Source: [LanceSpezzate/1xbet-api-php](https://github.com/LanceSpezzate/1xbet-api-php).
-- Category covers sportsbook sports, leagues, matches, odds, event search, and video metadata.
-- Review status: catalogued only; no live connection or remote requests are implemented.
-- The PHP wrapper depends on `HTTP_SGET` and `need/ok_odds.json`; its license was not confirmed.
-- **Not compatible with Aviator/Crash round analytics:** no Aviator round or multiplier methods were identified. Keep this category isolated from Aviator ingestion.
+In production, stored-history and import APIs fail closed if `DASHBOARD_ACCESS_TOKEN` is missing. The dashboard page itself can load without the token, but data operations require it. The token is held in the page's password field only; it is not saved to browser storage.
 
-## Signed webhook configuration
-Set `LIVE_FEED_WEBHOOK_SECRET` to a long random secret in the Railway service and in the authorized provider adapter's secret store. Never commit it or send it in chat. The webhook returns 503 until configured. Unlike dashboard APIs, the webhook authenticates using its HMAC signature and does not require `X-Dashboard-Token`.
+For local development, the token is optional. Do not commit secrets or place the token in the repository.
 
-The provider adapter must use official documentation and authorized access, normalize completed events into the Phase 04 `LiveFeedBatch` JSON schema, sign the exact serialized body, and send it to the webhook. Use stable round IDs and bounded retries; duplicate deliveries are safely skipped.
+## Database behavior
+- Docker startup runs `python -m app.init_db`, which creates missing tables and adds new columns without dropping existing round data.
+- Existing rows are retained. Rows imported from time-only `HH:mm` exports preserve the original time-of-day; the required legacy `occurred_at` field receives an ingestion-time fallback, not an invented event date.
+- Imports are committed transactionally. Duplicate rows are skipped; failed batches are rolled back.
+- The import endpoint returns a batch hash and inserted/duplicate counts.
 
-## Deployment and access protection
-Set `APP_ENV=production`, a persistent PostgreSQL `DATABASE_URL`, and a strong `DASHBOARD_ACCESS_TOKEN`. Set `LIVE_FEED_WEBHOOK_SECRET` only if receiving signed webhooks. Do not put secrets in Git or chat.
+## Capture compatibility and limitations
+Reference format: [an0nlk/1XBET_Crash_CF_Capture](https://github.com/an0nlk/1XBET_Crash_CF_Capture).
 
-## Scope and limitations
-No 1xBet API endpoint, upstream connector, polling worker, or provider credentials are configured: no official 1xBet API documentation or authorized endpoint was supplied. This phase delivers the secure receiving contract, not a live connection to 1xBet. A provider-specific adapter requires official API documentation or written authorization plus its schema and authentication requirements. No stealth browser automation, protected-session extraction, third-party WebSocket interception, anti-bot bypass, or unauthorized decryption is included.
+This project does not include stealth/anti-detection automation, protected-session extraction, third-party WebSocket interception, credential collection, or bypasses of authentication and anti-bot controls. The supported workflow is user-provided local exports or a data source/API that is explicitly authorized.
 
-All received events remain `unverified`. HMAC proves message integrity and possession of the shared secret; it does not prove the underlying game result is authentic or that a source is authorized. Historical statistics do not predict future rounds.
+Source and authorization declarations are supplied by the requester and are not independently verified. Imported values remain marked `unverified`. Historical frequencies, streaks, and Provably Fair checks do not predict future rounds or guarantee outcomes.
 
 ## Local setup
 1. Install Python 3.12.
@@ -48,3 +56,29 @@ All received events remain `unverified`. HMAC proves message integrity and posse
 7. Open `http://127.0.0.1:8000/dashboard`.
 
 API docs: `http://127.0.0.1:8000/docs`.
+
+
+
+## Phase 06 — Signed Live Data Webhook
+
+- `POST /api/v1/aviator/feed/webhook` accepts normalized batches from an explicitly authorized sender.
+- HMAC-SHA256 signs the exact request bytes and Unix timestamp using `X-HAMSA-Timestamp` and `X-HAMSA-Signature` headers.
+- Timestamp tolerance defaults to 300 seconds; request bodies are capped at 256 KB while streaming; duplicate round IDs are skipped.
+- Configure `LIVE_FEED_WEBHOOK_SECRET` in the deployment environment. HMAC confirms message integrity and shared-secret possession, not the truth or authorization of the upstream data.
+- This is a receiver only; no live 1xBet/SPRIBE connector is configured.
+
+## Source Catalog — Sportsbook
+
+- Read-only metadata endpoint: `GET /api/v1/catalog/sportsbook/sources/1xbet-php`.
+- Catalog entry for [LanceSpezzate/1xbet-api-php](https://github.com/LanceSpezzate/1xbet-api-php), covering sports, leagues, matches, odds, search, and video metadata.
+- The source is catalogued but not connected; it depends on `HTTP_SGET` and `need/ok_odds.json`, and its license is unconfirmed.
+- It is not an Aviator/Crash feed and is kept separate from Aviator ingestion.
+
+## Railway deployment
+Deploy using the included Dockerfile and `railway.json`. Configure `APP_ENV=production`, `DATABASE_URL`, `DASHBOARD_ACCESS_TOKEN`, and `LOG_LEVEL=INFO`. Use Railway PostgreSQL or another persistent PostgreSQL service for retained history.
+
+The API and Telegram bot may run as separate Railway services. Set `TELEGRAM_BOT_TOKEN` only on the bot service.
+\n\n## Phase 04 — Authorized live feed\nSee [Phase 04 implementation and request contract](docs/PHASE_04_LIVE_FEED.md). This is an authenticated ingestion adapter, not a 1xBet scraper. The operator is responsible for ensuring that the upstream source and collection method are authorized. No browser-session extraction, protected WebSocket interception, anti-bot bypass, or prediction logic is included.\n
+
+## Phase 05 — Source health & data quality
+See [Phase 05 monitor documentation](docs/PHASE_05_SOURCE_MONITOR.md). Monitoring is based only on records already stored by HAMSA; no upstream service is probed. A real external adapter requires official API documentation or documented authorization and an approved schema/authentication method.
