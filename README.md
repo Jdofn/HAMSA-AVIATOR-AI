@@ -15,6 +15,16 @@ Personal Aviator research platform for offline capture imports, authorized signe
 - Quality monitor: `GET /api/v1/aviator/monitor/quality`.
 - Dashboard: `GET /dashboard`.
 
+## Source catalog categories
+
+### Sportsbook — reviewed 1xBet PHP reference
+- Catalog endpoint: `GET /api/v1/catalog/sportsbook/sources/1xbet-php`.
+- Source: [LanceSpezzate/1xbet-api-php](https://github.com/LanceSpezzate/1xbet-api-php).
+- Category covers sportsbook sports, leagues, matches, odds, event search, and video metadata.
+- Review status: catalogued only; no live connection or remote requests are implemented.
+- The PHP wrapper depends on `HTTP_SGET` and `need/ok_odds.json`; its license was not confirmed.
+- **Not compatible with Aviator/Crash round analytics:** no Aviator round or multiplier methods were identified. Keep this category isolated from Aviator ingestion.
+
 ## Signed webhook configuration
 Set `LIVE_FEED_WEBHOOK_SECRET` to a long random secret in the Railway service and in the authorized provider adapter's secret store. Never commit it or send it in chat. The webhook returns 503 until configured. Unlike dashboard APIs, the webhook authenticates using its HMAC signature and does not require `X-Dashboard-Token`.
 
