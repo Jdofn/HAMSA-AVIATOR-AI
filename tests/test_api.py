@@ -8,7 +8,7 @@ def test_root_status():
     assert response.status_code == 200
     body = response.json()
     assert body["service"] == "HAMSA AVIATOR AI"
-    assert body["phase"] == "07"
+    assert body["phase"] == "08"
 
 def test_health():
     response = client.get("/health")
@@ -31,7 +31,6 @@ def test_sportsbook_source_catalog_is_separate_from_aviator():
     assert body["aviator_compatible"] is False
     assert "get_game" in body["reviewed_methods"]
     assert any("no Aviator/Crash" in item for item in body["limitations"])
-
 
 
 def test_sportsbook_event_import_and_update():
