@@ -1,62 +1,63 @@
-# HAMSA AVIATOR AI — Phase 02
+# HAMSA AVIATOR AI — Phase 03
 
-Foundation for a Telegram-based Aviator research system with defensive cybersecurity, offline capture imports, and historical analytics.
+Personal Aviator research platform for offline capture imports, persisted round history, historical analytics, and defensive security research.
 
-## Current scope
-- FastAPI backend with health, database-health, and system-status endpoints.
-- SQLAlchemy database setup and `round_results` table.
-- Telegram bot with `/start` and `/status`.
-- Railway Docker deployment configuration.
-- Defensive security endpoints:
-  - `GET /api/v1/security/scope` — permitted and prohibited research boundaries.
-  - `POST /api/v1/security/crypto/inspect` — offline Base64/hex decoding and SHA-256 fingerprinting; decoding is not decryption.
-  - `GET /api/v1/security/headers/check` — static API hardening recommendations.
-- Offline data intelligence:
-  - `POST /api/v1/data/datasets/inspect` — inspect requester-provided JSON/CSV in memory, calculate SHA-256, redact sensitive-key values, and return a sanitized preview.
-  - `POST /api/v1/data/aviator/import` — normalize local Aviator capture CSV/JSON exports with round reference, multiplier, and timestamp.
-- Historical Aviator analytics:
-  - `POST /api/v1/aviator/analyze` — calculate mean, median, standard deviation, percentiles, threshold hit rates, multiplier distribution, streak summaries, recent-sample mean, and optional aggregate player/bet/prize metrics.
-  - Analytics are descriptive only; no next-round predictions or betting signals are generated.
-- Authorized protocol/cryptography lab:
-  - `POST /api/v1/lab/protocol/inspect` — offline metadata validation and summary.
-  - `POST /api/v1/lab/crypto/hmac/verify` — HMAC-SHA256/SHA512 verification with constant-time comparison.
+## Current capabilities
+- FastAPI backend with health and system-status endpoints.
+- SQLAlchemy database and additive startup migration for round metadata.
+- Telegram bot foundation with `/start` and `/status`.
+- Offline JSON/CSV import compatible with the reference capture file formats:
+  - `POST /api/v1/data/aviator/import`
+  - Supports `F`, `L`, `TS` and the six-column headerless CSV format `Time,totalPlayers,totalBets,F,totalPrize,L`.
+  - Persists normalized rounds in `round_results`, including aggregate players/bets/prize metrics, source label, file name, and import batch SHA-256.
+  - Deduplicates by provider + source round reference; when no reference exists, uses a stable batch-hash/row key.
+  - Limits uploads to 1 MB and 10,000 rows.
+- Historical analytics:
+  - `POST /api/v1/aviator/analyze` — mean, median, standard deviation, percentiles, multiplier distribution, threshold hit rates, streaks, and recent-sample mean.
+  - Descriptive only; no next-round prediction or betting signals.
+- Persisted history API:
+  - `GET /api/v1/aviator/rounds?limit=50&offset=0`
+  - `GET /api/v1/aviator/summary`
+- Responsive dashboard:
+  - `GET /dashboard`
+  - Upload a local CSV/JSON export, save it to the configured database, view aggregate statistics, chart recent multipliers, and browse paginated history.
+- Defensive security endpoints and offline HMAC verification remain available under `/api/v1/security` and `/api/v1/lab`.
 
-## Capture compatibility
-The offline importer supports JSON exports and the source project's six-column headerless CSV shape:
-`Time, totalPlayers, totalBets, F, totalPrize, L`.
-It also accepts headered CSV and JSON fields `F`, `L`, and `TS`. Numeric `TS` values are interpreted as Unix epoch milliseconds. Time-only values such as `HH:mm` are retained without inventing a calendar date.
+## Dashboard setup and access protection
+Set these Railway/service variables:
+- `APP_ENV=production`
+- `DATABASE_URL` — use a persistent PostgreSQL database for production; ephemeral container storage is not suitable for durable SQLite history.
+- `DASHBOARD_ACCESS_TOKEN` — a long, random secret. The dashboard sends it as `X-Dashboard-Token` for import and history APIs.
 
-The analytics endpoint accepts normalized multiplier records and optional aggregate metrics. It does not expose individual player identities or betting-account details. Imports and analytics are in-memory; they do not persist uploaded content.
+In production, stored-history and import APIs fail closed if `DASHBOARD_ACCESS_TOKEN` is missing. The dashboard page itself can load without the token, but data operations require it. The token is held in the page's password field only; it is not saved to browser storage.
 
+For local development, the token is optional. Do not commit secrets or place the token in the repository.
+
+## Database behavior
+- Docker startup runs `python -m app.init_db`, which creates missing tables and adds new columns without dropping existing round data.
+- Existing rows are retained. Rows imported from time-only `HH:mm` exports preserve the original time-of-day; the required legacy `occurred_at` field receives an ingestion-time fallback, not an invented event date.
+- Imports are committed transactionally. Duplicate rows are skipped; failed batches are rolled back.
+- The import endpoint returns a batch hash and inserted/duplicate counts.
+
+## Capture compatibility and limitations
 Reference format: [an0nlk/1XBET_Crash_CF_Capture](https://github.com/an0nlk/1XBET_Crash_CF_Capture).
 
-## Security and authorization boundary
-Testing is limited to HAMSA-owned systems, isolated labs, or systems covered by explicit authorization. This project does not access third-party accounts or protected sessions, steal credentials/tokens, bypass authentication or anti-bot controls, intercept other users' traffic, or decrypt data without the required key and permission.
+This project does not include stealth/anti-detection automation, protected-session extraction, third-party WebSocket interception, credential collection, or bypasses of authentication and anti-bot controls. The supported workflow is user-provided local exports or a data source/API that is explicitly authorized.
 
-The reference repository's Puppeteer stealth/anti-detection automation and live third-party WebSocket capture are not included. The compatible workflow is user-provided exports or a source/API explicitly authorized for collection. No official or otherwise authorized 1xBet/Spribe results feed has been configured or verified.
-
-Source and authorization declarations are supplied by the requester and are not independently verified. All imported records are marked unverified. Historical frequencies and Provably Fair checks do not predict future rounds or guarantee outcomes.
-
-See:
-- [Security research policy](docs/SECURITY_RESEARCH_POLICY.md)
-- [Security roadmap](docs/ROADMAP_SECURITY_RESEARCH.md)
-- [Phase 02 lab scope](docs/PHASE_02_LAB.md)
+Source and authorization declarations are supplied by the requester and are not independently verified. Imported values remain marked `unverified`. Historical frequencies, streaks, and Provably Fair checks do not predict future rounds or guarantee outcomes.
 
 ## Local setup
 1. Install Python 3.12.
-2. Create a virtual environment.
+2. Create and activate a virtual environment.
 3. Install dependencies: `pip install -r requirements.txt`.
 4. Copy `.env.example` to `.env`.
-5. Run tests: `pytest -q`.
+5. Run tests: `PYTHONPATH=. pytest -q`.
 6. Start API: `uvicorn app.main:app --reload`.
-7. Initialize DB: `python -m app.init_db`.
+7. Open `http://127.0.0.1:8000/dashboard`.
 
 API docs: `http://127.0.0.1:8000/docs`.
 
-## Telegram bot
-Set `TELEGRAM_BOT_TOKEN` in `.env`, then run `python -m bot.main`. Run API and bot as separate Railway services.
-
 ## Railway deployment
-Deploy this repository as an API service using the included Dockerfile and `railway.json`. Configure `DATABASE_URL`, `APP_ENV=production`, and `LOG_LEVEL=INFO`. For the bot, create a second service from the same repository with start command `python -m bot.main` and set `TELEGRAM_BOT_TOKEN`.
+Deploy using the included Dockerfile and `railway.json`. Configure `APP_ENV=production`, `DATABASE_URL`, `DASHBOARD_ACCESS_TOKEN`, and `LOG_LEVEL=INFO`. Use Railway PostgreSQL or another persistent PostgreSQL service for retained history.
 
-Do not commit `.env` or secrets.
+The API and Telegram bot may run as separate Railway services. Set `TELEGRAM_BOT_TOKEN` only on the bot service.
