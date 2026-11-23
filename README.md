@@ -1,4 +1,4 @@
-# HAMSA AVIATOR AI — Phase 04
+# HAMSA AVIATOR AI — Phase 05
 
 Personal Aviator research platform for offline capture imports, persisted round history, historical analytics, and defensive security research.
 
@@ -62,3 +62,6 @@ Deploy using the included Dockerfile and `railway.json`. Configure `APP_ENV=prod
 
 The API and Telegram bot may run as separate Railway services. Set `TELEGRAM_BOT_TOKEN` only on the bot service.
 \n\n## Phase 04 — Authorized live feed\nSee [Phase 04 implementation and request contract](docs/PHASE_04_LIVE_FEED.md). This is an authenticated ingestion adapter, not a 1xBet scraper. The operator is responsible for ensuring that the upstream source and collection method are authorized. No browser-session extraction, protected WebSocket interception, anti-bot bypass, or prediction logic is included.\n
+
+## Phase 05 — Source health & data quality
+See [Phase 05 monitor documentation](docs/PHASE_05_SOURCE_MONITOR.md). Monitoring is based only on records already stored by HAMSA; no upstream service is probed. A real external adapter requires official API documentation or documented authorization and an approved schema/authentication method.
