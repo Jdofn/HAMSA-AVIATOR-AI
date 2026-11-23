@@ -88,3 +88,17 @@ def test_signed_webhook_rejects_oversized_body(monkeypatch):
     headers = signed_headers(body, secret)
     response = client.post("/api/v1/aviator/feed/webhook", content=body, headers=headers)
     assert response.status_code == 413
+
+
+def test_signed_webhook_rejects_malformed_sha256_hex(monkeypatch):
+    secret = "phase06-format-test-secret"
+    monkeypatch.setattr(settings, "live_feed_webhook_secret", secret)
+    body = json.dumps({
+        "source": "authorized test provider",
+        "authorization_basis": "Synthetic test fixture",
+        "records": [{"round_id": "webhook-phase06-format", "multiplier": 2.0}],
+    }).encode()
+    headers = signed_headers(body, secret)
+    headers["X-HAMSA-Signature"] = "sha256=" + "z" * 64
+    response = client.post("/api/v1/aviator/feed/webhook", content=body, headers=headers)
+    assert response.status_code == 401
