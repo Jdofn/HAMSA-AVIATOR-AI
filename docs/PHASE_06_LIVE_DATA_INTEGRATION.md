@@ -45,3 +45,14 @@ The upstream connector must be implemented on the sender side or as a separately
 
 ## Limitations
 A successful webhook response means HAMSA accepted and stored a structurally valid signed payload. It does not independently prove the source's authenticity, authorization, completeness, or game-result verification. Records remain `unverified`. Historical analytics are descriptive and are not next-round predictions or betting signals.
+
+
+## Assessment of the supplied `LanceSpezzate/1xbet-api-php` file
+
+The supplied `_1xbet.php` was reviewed as a candidate source. It is a PHP wrapper for sportsbook data, not an Aviator/Crash feed:
+- It calls `LiveFeed` / `LineFeed` methods such as `GetSportsShortZip`, `GetChampsZip`, `Get1x2_Zip`, `BestGamesExtZip`, `GetChampZip`, `GetGameZip`, and `Web_SearchZip`.
+- Its exposed methods cover sports, leagues, matches, odds, search, and video metadata; no Aviator round/multiplier endpoint or Crash-specific method is present.
+- It depends on an external `HTTP_SGET` helper and `need/ok_odds.json`; the supplied PHP file alone is not self-contained.
+- The repository README only describes the project as a 1xbet.com API PHP project. No LICENSE file was found at the repository root, so copying the source wholesale into HAMSA is not assumed to be licensed.
+
+**Decision:** do not wire this wrapper into the Aviator ingestion pipeline. It would provide the wrong data domain and could not produce valid round multipliers. Keep it as a reviewed reference only. Reconsider it only if HAMSA's scope expands to sportsbook data and the endpoint usage, terms, and code license are confirmed. For Aviator, a separate authorized Crash/Aviator data source or official interface is still required.
