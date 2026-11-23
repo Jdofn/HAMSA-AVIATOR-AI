@@ -16,3 +16,7 @@
 
 ## Authorization boundary
 Use only synthetic data, systems owned by the operator, or environments covered by explicit written authorization. Do not submit third-party credentials, cookies, session identifiers, private keys, or personal data. The API cannot independently verify the requester's authorization declaration.
+
+
+## Offline compatibility adapter
+HAMSA includes a clean-room importer for local CSV/JSON exports in the reference capture format (`L`, `F`, `TS`). It ignores player/bet/prize totals, normalizes timestamps, and marks every multiplier unverified. It performs no browser automation, WebSocket interception, network collection, or persistence. The reference repository's active capture and stealth components are intentionally not copied or integrated.
