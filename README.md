@@ -1,20 +1,27 @@
-# HAMSA AVIATOR AI — Phase 01A
+# HAMSA AVIATOR AI — Phase 01B
 
-Foundation for a Telegram-based Aviator research system with a defensive security research API.
+Foundation for a Telegram-based Aviator research system with defensive cybersecurity and offline data-intelligence capabilities.
 
 ## Current scope
 - FastAPI backend with health, database-health, and system-status endpoints.
 - SQLAlchemy database setup and `round_results` table.
 - Telegram bot with `/start` and `/status`.
 - Railway Docker deployment configuration.
-- Defensive security research endpoints:
-  - `GET /api/v1/security/scope` — documents permitted and prohibited research boundaries.
+- Defensive security endpoints:
+  - `GET /api/v1/security/scope` — permitted and prohibited research boundaries.
   - `POST /api/v1/security/crypto/inspect` — offline Base64/hex decoding, SHA-256 fingerprinting, and bounded previews. Decoding is not decryption.
-  - `GET /api/v1/security/headers/check` — static API hardening recommendations; it does not scan remote hosts.
-- Automated API and security tests.
+  - `GET /api/v1/security/headers/check` — static API hardening recommendations; no remote scanning.
+- Offline dataset intelligence:
+  - `POST /api/v1/data/datasets/inspect` — inspect requester-provided JSON/CSV in memory.
+  - Calculates SHA-256, reports columns and record count, redacts sensitive-key values, and returns a five-record sanitized preview.
+  - Requires source and authorization-basis declarations.
+  - Does not persist uploaded content; provenance claims are requester-supplied and are not independently verified.
+- Automated API, security, and dataset tests.
 
 ## Security and authorization boundary
 Testing is limited to HAMSA-owned systems, isolated labs, or systems covered by explicit authorization. The project does not access third-party accounts or protected sessions, steal credentials/tokens, bypass authentication or anti-bot controls, intercept other users' traffic, or decrypt data without the required key and permission.
+
+Only upload data you are authorized to process. Secrets in JSON/CSV are redacted by sensitive field names before the preview is returned, but this is not a substitute for removing secrets before submission. Input is processed in memory and not saved by this endpoint.
 
 See:
 - [Security research policy](docs/SECURITY_RESEARCH_POLICY.md)
@@ -50,10 +57,8 @@ For the bot, create a second service from the same repository with custom start 
 
 Do not commit `.env` or secrets.
 
-## Phase 01A acceptance criteria
-- Existing API health and system endpoints remain available.
-- Security scope endpoint clearly reports research boundaries.
-- Crypto inspection accepts bounded Base64/hex/UTF-8 input and returns a SHA-256 fingerprint.
-- Invalid or oversized input is rejected.
-- Static header guidance does not perform remote scanning.
-- Official 1xBet/Spribe source remains marked unconfigured until independently verified.
+## Phase 01B acceptance criteria
+- Existing health and system endpoints remain available.
+- Security scope and crypto inspection endpoints enforce bounded input.
+- JSON/CSV dataset inspection requires provenance declarations, rejects invalid formats, redacts sensitive-key values, and does not persist submitted content.
+- Official 1xBet/Spribe source remains unconfigured until independently verified.
